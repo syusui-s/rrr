@@ -1,0 +1,12 @@
+[root]
+name = "rrr"
+version = "0.0.1"
+dependencies = [
+ "nom 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "nom"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
