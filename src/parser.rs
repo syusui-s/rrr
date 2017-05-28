@@ -6,7 +6,6 @@ use nom::{digit, oct_digit, hex_digit};
 ///////////////////////////////////////////////
 // Printer
 
-/*
 fn print_literal(lit: &Literal) {
     use self::Literal::*;
 
@@ -35,7 +34,6 @@ fn print_optree<'a>(tree: &'a BinOpTree) {
     print_term(&rhs);
     print!(")");
 }
-*/
 
 ///////////////////////////////////////////////
 // Parser
@@ -46,17 +44,19 @@ named!(sign<Option<char>>, opt!(one_of!(&b"+-"[..])));
 
 named!(lit_fixnum_value<i32>,
     map_res!(
-        alt!(
-           do_parse!(
-               tag!("0") >>
-               res: alt!(
-                   do_parse!(one_of!("bB")       >> s: bin_digit >> (s,  2_u32) ) |
-                   do_parse!(one_of!("xX")       >> s: hex_digit >> (s, 16_u32) ) |
-                   do_parse!(opt!(one_of!("oO")) >> s: oct_digit >> (s,  8_u32) )
-               ) >>
-               (res)
-           ) |
-           do_parse!(s: digit >> (s, 10u32) )
+        alt_complete!(
+            do_parse!(
+                tag!("0") >>
+                res: alt!(
+                    do_parse!(tag_no_case!("b")    >> s: bin_digit >> (s,  2_u32) ) |
+                    do_parse!(opt!(one_of!("oO_")) >> s: oct_digit >> (s,  8_u32) ) |
+                    do_parse!(tag_no_case!("x")    >> s: hex_digit >> (s, 16_u32) ) |
+                    do_parse!(tag_no_case!("d")    >> s: digit     >> (s, 10_u32) )
+                ) >>
+                (res)
+            ) |
+            do_parse!(s: recognize!(digit) >> (s, 10_u32) ) |
+            do_parse!(s: tag!("0") >> (s, 10_u32))
        ),
        |(num, radix)| {
            // TODO return custom error. Currently ignored err and returned ErrorKind::MapRes;
@@ -141,6 +141,20 @@ mod test {
     fn lit_fixnum_matches_negative_value() {
         let expected = exact!(Literal::Fixnum(-42));
         let actual = lit_fixnum(b"-42");
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn lit_fixnum_matches_one() {
+        let expected = exact!(Literal::Fixnum(1));
+        let actual = lit_fixnum(b"1");
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn lit_fixnum_matches_zero() {
+        let expected = exact!(Literal::Fixnum(0));
+        let actual = lit_fixnum(b"0");
         assert_eq!(expected, actual)
     }
 
